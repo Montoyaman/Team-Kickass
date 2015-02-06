@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">UChallenge</string>
+    <string name="title_activity_main_gui">MapGUI</string>
+    <string name="dialog_add_title">Create Marker</string>
+    <string name="cancel">Cancel</string>
+    <string name="enter">Add Challenge</string>
+
+</resources>
