@@ -1,13 +1,13 @@
 package com.example.ryan.uchallenge;
 
-import android.app.Dialog;
-import android.content.Intent;
+import android.app.FragmentManager;
+import android.app.FragmentTransaction;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
+import android.widget.FrameLayout;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -19,7 +19,10 @@ import com.google.android.gms.maps.model.MarkerOptions;
 public class MainGUI extends FragmentActivity {
 
     private GoogleMap mMap;
+    FrameLayout addMarker;
+    FrameLayout editMarker;
 
+    Marker curMark;
     LatLng curPoint;
 
     @Override
@@ -29,6 +32,21 @@ public class MainGUI extends FragmentActivity {
         /*Setup the theme and map*/
         setTheme(R.style.SplashTheme);
         setContentView(R.layout.activity_main_gui);
+
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+
+        if (savedInstanceState == null) {
+            // First incarnation of this activity.
+            mapFragment.setRetainInstance(true);
+        } else {
+            // Reincarnated activity. The obtained map is the same map instance in the previous
+            // activity life cycle. There is no need to reinitialize it.
+            mMap = mapFragment.getMap();
+        }
+
+        editMarker = (FrameLayout) findViewById(R.id.EditMarkerFrame);
+        addMarker = (FrameLayout) findViewById(R.id.MarkerFrame);
         setUpMapIfNeeded();
 
         // Setting a custom info window adapter for the map
@@ -51,16 +69,16 @@ public class MainGUI extends FragmentActivity {
 //                LatLng latLng = arg0.getPosition();
 //
 //                // Getting reference to the TextView to set latitude
-//                //TextView Title = (TextView) v.findViewById(R.id.Title);
+//                TextView Title = (TextView) v.findViewById(R.id.Title);
 //
 //                // Getting reference to the TextView to set longitude
-//                //TextView Description = (TextView) v.findViewById(R.id.Description_);
+//                TextView Description = (TextView) v.findViewById(R.id.Description);
 //
 //                // Setting the latitude
-//                //tvLat.setText("Latitude:" + latLng.latitude);
+//                tvLat.setText("Latitude:" + latLng.latitude);
 //
 //                // Setting the longitude
-//                //tvLng.setText("Longitude:"+ latLng.longitude);
+//                tvLng.setText("Longitude:"+ latLng.longitude);
 //
 //                // Returning the view containing InfoWindow contents
 //                return v;
@@ -69,77 +87,182 @@ public class MainGUI extends FragmentActivity {
 //        });
 
         //Check when the info window is clicked
-//        mMap.setOnInfoWindowClickListener(
-//                new GoogleMap.OnInfoWindowClickListener() {
-//                    @Override
-//                    public void onInfoWindowClick(Marker marker) {
-//                        marker.setTitle("Blah");
-//                        marker.showInfoWindow();
-//                    }
-//                }
-//        );
+        mMap.setOnInfoWindowClickListener(
+                new GoogleMap.OnInfoWindowClickListener() {
+                    @Override
+                    public void onInfoWindowClick(Marker marker) {
+                        if (addMarker.getVisibility() == View.VISIBLE)
+                        {
+                            //Reset and collapse the frame
+                            //Clear text inputs
+                            EditText title = (EditText) addMarker.findViewById(R.id.addTitle);
+                            EditText description = (EditText) addMarker.findViewById(R.id.addDescription);
+                            title.setText("");
+                            description.setText("");
+                            addMarker.setVisibility(View.INVISIBLE);
 
-        //Add a dialog box
-        final Dialog dialog = new Dialog(MainGUI.this);
-        dialog.setContentView(R.layout.marker_add_dialog);
+                            curPoint = null;
+                        }
 
+                        curMark = marker;
 
+                        String tHandle = curMark.getTitle();
+                        String dHandle = curMark.getSnippet();
 
-        //final AddMarkerDialogFragment dialogAdd = new AddMarkerDialogFragment();
+                        EditText title = (EditText) editMarker.findViewById(R.id.editTitle);
+                        EditText description = (EditText) editMarker.findViewById(R.id.editDescription);
+                        title.setText(tHandle);
+                        description.setText(dHandle);
+
+                        if (editMarker.getVisibility() == View.VISIBLE)
+                        {
+                            //Reset and collapse the frame
+                            //Clear text inputs
+                            title.setText("");
+                            description.setText("");
+                            editMarker.setVisibility(View.INVISIBLE);
+
+                            curMark = null;
+                        }
+                        else
+                        {
+                            editMarker.setVisibility(View.VISIBLE);
+
+                            Button EditButton = (Button) editMarker.findViewById(R.id.Edit);
+                            EditButton.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    EditText title = (EditText) editMarker.findViewById(R.id.editTitle);
+                                    EditText description = (EditText) editMarker.findViewById(R.id.editDescription);
+
+                                    curMark.setTitle(title.getText().toString());
+                                    curMark.setSnippet(description.getText().toString());
+
+                                    // Showing InfoWindow on the GoogleMap
+                                    curMark.showInfoWindow();
+
+                                    //Clear text inputs
+                                    title.setText("");
+                                    description.setText("");
+                                    editMarker.setVisibility(View.INVISIBLE);
+
+                                    curMark = null;
+                                }
+                            });
+
+                            Button RemoveButton = (Button) editMarker.findViewById(R.id.Remove);
+                            RemoveButton.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    //Remove the marker from the map
+                                    curMark.remove();
+
+                                    EditText title = (EditText) editMarker.findViewById(R.id.editTitle);
+                                    EditText description = (EditText) editMarker.findViewById(R.id.editDescription);
+                                    //Clear text inputs
+                                    title.setText("");
+                                    description.setText("");
+                                    editMarker.setVisibility(View.INVISIBLE);
+
+                                    curMark = null;
+                                }
+                            });
+
+                            Button CancelButton = (Button) editMarker.findViewById(R.id.Cancel);
+                            CancelButton.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    EditText title = (EditText) editMarker.findViewById(R.id.editTitle);
+                                    EditText description = (EditText) editMarker.findViewById(R.id.editDescription);
+                                    //Clear text inputs
+                                    title.setText("");
+                                    description.setText("");
+                                    editMarker.setVisibility(View.INVISIBLE);
+
+                                    curMark = null;
+                                }
+                            });
+                        }
+                    }
+                }
+        );
 
         //Setup the map click listener
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
 
             @Override
             public void onMapClick(LatLng point) {
-                /*Pass marker parameters into dialog*/
-                //Bundle markBundle = new Bundle();
-                //markBundle.putDouble("Longitude",point.longitude);
-                //markBundle.putDouble("Latitude",point.latitude);
+                //Clear necessary framelayouts and clear
+                if (editMarker.getVisibility() == View.VISIBLE)
+                {
+                    EditText title = (EditText) editMarker.findViewById(R.id.editTitle);
+                    EditText description = (EditText) editMarker.findViewById(R.id.editDescription);
+                    //Reset and collapse the frame
+                    //Clear text inputs
+                    title.setText("");
+                    description.setText("");
+                    editMarker.setVisibility(View.INVISIBLE);
 
-                curPoint = point;
-                dialog.setTitle("Add a Challenge");
-                dialog.show();
+                    curMark = null;
+                }
 
-                Button OKButton = (Button) dialog.findViewById(R.id.OK);
-                OKButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        MarkerOptions options = new MarkerOptions();
+                else if (addMarker.getVisibility() == View.VISIBLE)
+                {
+                    //Reset and collapse the frame
+                    //Clear text inputs
+                    EditText title = (EditText) addMarker.findViewById(R.id.addTitle);
+                    EditText description = (EditText) addMarker.findViewById(R.id.addDescription);
+                    title.setText("");
+                    description.setText("");
+                    addMarker.setVisibility(View.INVISIBLE);
 
-                        EditText title = (EditText)dialog.findViewById(R.id.addTitle);
-                        EditText description = (EditText) dialog.findViewById(R.id.addDescription);
+                    curPoint = null;
+                }
+                else
+                {
+                    addMarker.setVisibility(View.VISIBLE);
 
-                        options.title(title.getText().toString());
-                        options.snippet(description.getText().toString());
+                    curPoint = point;
 
-                        // Setting position on the MarkerOptions
-                        options.position(curPoint);
+                    // Animating to the currently touched position
+                    mMap.animateCamera(CameraUpdateFactory.newLatLng(curPoint));
 
-                        // Animating to the currently touched position
-                        mMap.animateCamera(CameraUpdateFactory.newLatLng(curPoint));
+                    Button OKButton = (Button) addMarker.findViewById(R.id.OK);
+                    OKButton.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            MarkerOptions options = new MarkerOptions();
 
-                        // Adding marker on the GoogleMap
-                        Marker marker = mMap.addMarker(options);
+                            EditText title = (EditText) addMarker.findViewById(R.id.addTitle);
+                            EditText description = (EditText) addMarker.findViewById(R.id.addDescription);
 
-                        // Showing InfoWindow on the GoogleMap
-                        marker.showInfoWindow();
+                            options.title(title.getText().toString());
+                            options.snippet(description.getText().toString());
 
-                        dialog.dismiss();
+                            // Setting position on the MarkerOptions
+                            options.position(curPoint);
 
-                        curPoint = null;
-                    }
-                });
-                //dialogAdd.setArguments(markBundle);
-                //Display the dialog!
-                //dialogAdd.set
-                //dialogAdd.show(getFragmentManager(), "Marker");
+                            // Adding marker on the GoogleMap
+                            Marker marker = mMap.addMarker(options);
+
+                            // Showing InfoWindow on the GoogleMap
+                            marker.showInfoWindow();
+
+                            //Clear text inputs
+                            title.setText("");
+                            description.setText("");
+                            addMarker.setVisibility(View.INVISIBLE);
+
+                            curPoint = null;
+                        }
+                    });
+                }
             }
         });
     }
 
     //User has determined to create a marker, so make it!
-    public void onUserSelectValue(String selectedValue, LatLng point)
+    public void onUserSelectValue(LatLng point, String title, String description)
     {
         MarkerOptions options = new MarkerOptions();
         // Setting position on the MarkerOptions
