@@ -4,9 +4,6 @@ import android.content.Context;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.FrameLayout;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -16,7 +13,6 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -27,15 +23,18 @@ import java.util.HashMap;
 
 public class MainGUI extends FragmentActivity {
 
+    /*Google map*/
     private GoogleMap mMap;
-    private HashMap<Marker, Marker> MarkerMap;
-    FrameLayout addMarker;
-    FrameLayout editMarker;
 
-    ArrayList<Marker> markerList = new ArrayList<>();
+    /*Hashmap for storing markers*/
+    private HashMap<Marker, ActivityMarker> MarkerMap;
 
-    Marker curMark;
-    LatLng curPoint;
+    /*Add frame classes*/
+    private AddMarkerFrame addMarkerFrame;
+    private EditMarkerFrame editMarkerFrame;
+
+    /*Array for hashing?*/
+//    private ArrayList<ActivityMarker> markerList = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,7 +44,7 @@ public class MainGUI extends FragmentActivity {
         setTheme(R.style.SplashTheme);
         setContentView(R.layout.activity_main_gui);
 
-        MarkerMap = new HashMap<Marker, Marker>();
+        MarkerMap = new HashMap<Marker, ActivityMarker>();
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -59,140 +58,28 @@ public class MainGUI extends FragmentActivity {
             mMap = mapFragment.getMap();
         }
 
-        editMarker = (FrameLayout) findViewById(R.id.EditMarkerFrame);
-        addMarker = (FrameLayout) findViewById(R.id.MarkerFrame);
         setUpMapIfNeeded();
 
-        // Setting a custom info window adapter for the map
-//        mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
-//
-//            // Use default InfoWindow frame
-//            @Override
-//            public View getInfoWindow(Marker arg0) {
-//                return null;
-//            }
-//
-//            // Defines the contents of the InfoWindow
-//            @Override
-//            public View getInfoContents(Marker arg0) {
-//
-//                // Getting view from the layout file info_window_layout
-//                View v = getLayoutInflater().inflate(R.layout.windowlayout, null);
-//
-//                // Getting the position from the marker
-//                LatLng latLng = arg0.getPosition();
-//
-//                // Getting reference to the TextView to set latitude
-//                TextView Title = (TextView) v.findViewById(R.id.Title);
-//
-//                // Getting reference to the TextView to set longitude
-//                TextView Description = (TextView) v.findViewById(R.id.Description);
-//
-//                // Setting the latitude
-//                tvLat.setText("Latitude:" + latLng.latitude);
-//
-//                // Setting the longitude
-//                tvLng.setText("Longitude:"+ latLng.longitude);
-//
-//                // Returning the view containing InfoWindow contents
-//                return v;
-//
-//            }
-//        });
+        /*Instantiate the frames using the appropriate views and calling context*/
+        addMarkerFrame = new AddMarkerFrame((FrameLayout) findViewById(R.id.add_marker_frame), this);
+        editMarkerFrame = new EditMarkerFrame((FrameLayout) findViewById(R.id.edit_marker_frame), this);
 
         //Check when the info window is clicked
         mMap.setOnInfoWindowClickListener(
                 new GoogleMap.OnInfoWindowClickListener() {
                     @Override
                     public void onInfoWindowClick(Marker marker) {
-                        if (addMarker.getVisibility() == View.VISIBLE) {
-                            //Reset and collapse the frame
-                            //Clear text inputs
-                            EditText title = (EditText) addMarker.findViewById(R.id.addTitle);
-                            EditText description = (EditText) addMarker.findViewById(R.id.addDescription);
-                            title.setText("");
-                            description.setText("");
-                            addMarker.setVisibility(View.INVISIBLE);
-
-                            curPoint = null;
+                        if (addMarkerFrame.isVisible())
+                        {
+                            addMarkerFrame.clearFrameWindow();
                         }
 
-                        curMark = marker;
-
-                        String tHandle = curMark.getTitle();
-                        String dHandle = curMark.getSnippet();
-
-                        EditText title = (EditText) editMarker.findViewById(R.id.editTitle);
-                        EditText description = (EditText) editMarker.findViewById(R.id.editDescription);
-                        title.setText(tHandle);
-                        description.setText(dHandle);
-
-                        if (editMarker.getVisibility() == View.VISIBLE) {
-                            //Reset and collapse the frame
-                            //Clear text inputs
-                            title.setText("");
-                            description.setText("");
-                            editMarker.setVisibility(View.INVISIBLE);
-
-                            curMark = null;
-                        } else {
-                            editMarker.setVisibility(View.VISIBLE);
-
-                            Button EditButton = (Button) editMarker.findViewById(R.id.Edit);
-                            EditButton.setOnClickListener(new View.OnClickListener() {
-                                @Override
-                                public void onClick(View v) {
-                                    EditText title = (EditText) editMarker.findViewById(R.id.editTitle);
-                                    EditText description = (EditText) editMarker.findViewById(R.id.editDescription);
-
-                                    curMark.setTitle(title.getText().toString());
-                                    curMark.setSnippet(description.getText().toString());
-
-                                    // Showing InfoWindow on the GoogleMap
-                                    curMark.showInfoWindow();
-
-                                    //Clear text inputs
-                                    title.setText("");
-                                    description.setText("");
-                                    editMarker.setVisibility(View.INVISIBLE);
-
-                                    curMark = null;
-                                }
-                            });
-
-                            Button RemoveButton = (Button) editMarker.findViewById(R.id.Remove);
-                            RemoveButton.setOnClickListener(new View.OnClickListener() {
-                                @Override
-                                public void onClick(View v) {
-                                    //Remove the marker from the map
-                                    curMark.remove();
-
-                                    EditText title = (EditText) editMarker.findViewById(R.id.editTitle);
-                                    EditText description = (EditText) editMarker.findViewById(R.id.editDescription);
-                                    //Clear text inputs
-                                    title.setText("");
-                                    description.setText("");
-                                    editMarker.setVisibility(View.INVISIBLE);
-
-                                    curMark = null;
-                                }
-                            });
-
-                            Button CancelButton = (Button) editMarker.findViewById(R.id.Cancel);
-                            CancelButton.setOnClickListener(new View.OnClickListener() {
-                                @Override
-                                public void onClick(View v) {
-                                    EditText title = (EditText) editMarker.findViewById(R.id.editTitle);
-                                    EditText description = (EditText) editMarker.findViewById(R.id.editDescription);
-                                    //Clear text inputs
-                                    title.setText("");
-                                    description.setText("");
-                                    editMarker.setVisibility(View.INVISIBLE);
-
-                                    curMark = null;
-                                }
-                            });
+                        if (editMarkerFrame.isVisible())
+                        {
+                            editMarkerFrame.clearFrameWindow();
                         }
+
+                        editMarkerFrame.openFrameWindow(marker);
                     }
                 }
         );
@@ -202,84 +89,73 @@ public class MainGUI extends FragmentActivity {
 
             @Override
             public void onMapClick(LatLng point) {
-                //Clear necessary framelayouts and clear
-                if (editMarker.getVisibility() == View.VISIBLE) {
-                    EditText title = (EditText) editMarker.findViewById(R.id.editTitle);
-                    EditText description = (EditText) editMarker.findViewById(R.id.editDescription);
-                    //Reset and collapse the frame
-                    //Clear text inputs
-                    title.setText("");
-                    description.setText("");
-                    editMarker.setVisibility(View.INVISIBLE);
+                mMap.animateCamera(CameraUpdateFactory.newLatLng(point));
 
-                    curMark = null;
-                } else if (addMarker.getVisibility() == View.VISIBLE) {
-                    //Reset and collapse the frame
-                    //Clear text inputs
-                    EditText title = (EditText) addMarker.findViewById(R.id.addTitle);
-                    EditText description = (EditText) addMarker.findViewById(R.id.addDescription);
-                    title.setText("");
-                    description.setText("");
-                    addMarker.setVisibility(View.INVISIBLE);
+                //Clear necessary frame layouts
+                if (addMarkerFrame.isVisible())
+                {
+                    addMarkerFrame.clearFrameWindow();
+                }
 
-                    curPoint = null;
-                } else {
-                    addMarker.setVisibility(View.VISIBLE);
+                else if (editMarkerFrame.isVisible())
+                {
+                    editMarkerFrame.clearFrameWindow();
+                }
 
-                    curPoint = point;
-
-                    // Animating to the currently touched position
-                    mMap.animateCamera(CameraUpdateFactory.newLatLng(curPoint));
-
-                    Button OKButton = (Button) addMarker.findViewById(R.id.OK);
-                    OKButton.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            MarkerOptions options = new MarkerOptions();
-
-                            EditText title = (EditText) addMarker.findViewById(R.id.addTitle);
-                            EditText description = (EditText) addMarker.findViewById(R.id.addDescription);
-
-                            options.title(title.getText().toString());
-                            options.snippet(description.getText().toString());
-
-                            // Setting position on the MarkerOptions
-                            options.position(curPoint);
-
-                            // Adding marker on the GoogleMap
-                            Marker marker = mMap.addMarker(options);
-
-                            //Adding to list and hashmap
-                            markerList.add(marker);
-                            hashMarkers(markerList);
-
-                            // Showing InfoWindow on the GoogleMap
-                            marker.showInfoWindow();
-
-                            //Clear text inputs
-                            title.setText("");
-                            description.setText("");
-                            addMarker.setVisibility(View.INVISIBLE);
-
-                            curPoint = null;
-
-                            saveMap();
-                        }
-                    });
+                else
+                {
+                    addMarkerFrame.openFrameWindow(point);
                 }
             }
         });
     }
+
+    /*This function is called by the EditMarkerFrame class when a button has been pressed*/
+    public void onEditMarker(String OPcode)
+    {
+        Marker mark = editMarkerFrame.getFrameMarker();
+
+        switch (OPcode) {
+            case "Edit":
+                mark.setTitle(editMarkerFrame.getFrameTitle());
+                mark.setSnippet(editMarkerFrame.getFrameDescription());
+                mark.showInfoWindow();
+                break;
+            case "Remove":
+                mark.remove();
+                break;
+        }
+
+        editMarkerFrame.clearFrameWindow();
+    }
+
+    /*This function is called by the AddMarkerFrame class when the create button has been placed*/
+    public void onAddMarker()
+    {
+        //Create the marker and place on the map
+        MarkerOptions options = new MarkerOptions();
+        options.title(addMarkerFrame.getFrameTitle());
+        options.snippet(addMarkerFrame.getFrameDescription());
+        // Setting position on the MarkerOptions
+        options.position(addMarkerFrame.getFramePoint());
+        // Adding marker on the GoogleMap
+        Marker marker = mMap.addMarker(options);
+        marker.showInfoWindow();
+        //Clear text inputs
+        addMarkerFrame.clearFrameWindow();
+    }
+
     //http://www.rogcg.com/blog/2014/04/20/android-working-with-google-maps-v2-and-custom-markers
-    private void hashMarkers(ArrayList<Marker> markers)
+    //Iterate through the Hash and create markers
+    private void hashMarkers(ArrayList<ActivityMarker> markers)
     {
         if(markers.size() > 0)
         {
-            for (Marker myMarker : markers)
+            for (ActivityMarker myMarker : markers)
             {
 
                 // Create user marker with custom icon and other options
-                MarkerOptions markerOption = new MarkerOptions().position(myMarker.getPosition());
+                MarkerOptions markerOption = new MarkerOptions().position(new LatLng(myMarker.getLatitude(), myMarker.getLongitude()));
 //                MarkerOptions markerOption = new MarkerOptions().position(new LatLng(myMarker.getmLatitude(), myMarker.getmLongitude()));
                 //markerOption.icon(BitmapDescriptorFactory.fromResource(R.drawable.currentlocation_icon));
 
@@ -291,13 +167,14 @@ public class MainGUI extends FragmentActivity {
         }
     }
 
-    public void saveMap() {
+    private void saveMap() {
         try {
             FileOutputStream fileOutputStream = new FileOutputStream("Test.txt");
             ObjectOutputStream objectOutputStream= new ObjectOutputStream(fileOutputStream);
 
             objectOutputStream.writeObject(MarkerMap);
             objectOutputStream.close();
+            fileOutputStream.close();
 
 //            FileOutputStream fos = openFileOutput("Test", Context.MODE_PRIVATE);
 //            ObjectOutputStream os = new ObjectOutputStream(fos);
@@ -310,7 +187,7 @@ public class MainGUI extends FragmentActivity {
         }
     }
 
-    public HashMap loadMap()
+    private HashMap loadMap()
     {
         try {
             Context context = getApplicationContext();
@@ -330,23 +207,6 @@ public class MainGUI extends FragmentActivity {
         }
 
         return null;
-    }
-
-    //User has determined to create a marker, so make it!
-    public void onUserSelectValue(LatLng point, String title, String description)
-    {
-        MarkerOptions options = new MarkerOptions();
-        // Setting position on the MarkerOptions
-        options.position(point);
-
-        // Animating to the currently touched position
-        mMap.animateCamera(CameraUpdateFactory.newLatLng(point));
-
-        // Adding marker on the GoogleMap
-        Marker marker = mMap.addMarker(options);
-
-        // Showing InfoWindow on the GoogleMap
-        marker.showInfoWindow();
     }
 
     @Override
