@@ -34,7 +34,7 @@ public class MainGUI extends FragmentActivity {
     private EditMarkerFrame editMarkerFrame;
 
     /*Array for hashing?*/
-//    private ArrayList<ActivityMarker> markerList = new ArrayList<>();
+    private ArrayList<ActivityMarker> markerList = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -132,17 +132,35 @@ public class MainGUI extends FragmentActivity {
     /*This function is called by the AddMarkerFrame class when the create button has been placed*/
     public void onAddMarker()
     {
+        //Add the marker to the array
+        ActivityMarker newMark = new ActivityMarker(addMarkerFrame.getFrameTitle(),addMarkerFrame.getFrameDescription(),addMarkerFrame.getFramePoint().latitude,addMarkerFrame.getFramePoint().longitude);
+        markerList.add(newMark);
+
+
         //Create the marker and place on the map
-        MarkerOptions options = new MarkerOptions();
-        options.title(addMarkerFrame.getFrameTitle());
-        options.snippet(addMarkerFrame.getFrameDescription());
+        //MarkerOptions options = new MarkerOptions();
+        //options.title(addMarkerFrame.getFrameTitle());
+        //options.snippet(addMarkerFrame.getFrameDescription());
         // Setting position on the MarkerOptions
-        options.position(addMarkerFrame.getFramePoint());
+        //options.position(addMarkerFrame.getFramePoint());
         // Adding marker on the GoogleMap
-        Marker marker = mMap.addMarker(options);
-        marker.showInfoWindow();
+        //Marker marker = mMap.addMarker(options);
+        //marker.showInfoWindow();
         //Clear text inputs
-        addMarkerFrame.clearFrameWindow();
+        //addMarkerFrame.clearFrameWindow();
+    }
+
+    private void plotMarkers(ArrayList<ActivityMarker> markers)
+    {
+        if(markers.size() > 0)
+        {
+            for (ActivityMarker myMarker : markers)
+            {
+                MarkerOptions markerOption = new MarkerOptions().position(new LatLng(myMarker.getLatitude(), myMarker.getLongitude()));
+
+
+            }
+        }
     }
 
     //http://www.rogcg.com/blog/2014/04/20/android-working-with-google-maps-v2-and-custom-markers
@@ -155,12 +173,12 @@ public class MainGUI extends FragmentActivity {
             {
 
                 // Create user marker with custom icon and other options
-                MarkerOptions markerOption = new MarkerOptions().position(new LatLng(myMarker.getLatitude(), myMarker.getLongitude()));
+                //MarkerOptions markerOption = new MarkerOptions().position(new LatLng(myMarker.getLatitude(), myMarker.getLongitude()));
 //                MarkerOptions markerOption = new MarkerOptions().position(new LatLng(myMarker.getmLatitude(), myMarker.getmLongitude()));
                 //markerOption.icon(BitmapDescriptorFactory.fromResource(R.drawable.currentlocation_icon));
 
-                Marker currentMarker = mMap.addMarker(markerOption);
-                MarkerMap.put(currentMarker, myMarker);
+                //Marker currentMarker = mMap.addMarker(markerOption);
+                //MarkerMap.put(currentMarker, myMarker);
 
                 //mMap.setInfoWindowAdapter(new MarkerInfoWindowAdapter());
             }

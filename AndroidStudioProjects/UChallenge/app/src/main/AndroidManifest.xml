@@ -24,7 +24,7 @@
             android:value="@integer/google_play_services_version" />
         <meta-data
             android:name="com.google.android.maps.v2.API_KEY"
-            android:value="AIzaSyDuHOueVKAbEYIeQp9WNbbiU-HKwVMkZ5k" />
+            android:value="AIzaSyCxUegOHpV_MZSYsS6HQv5dACsJbU_6FfM" />
 
         <activity
             android:name=".MainGUI"
@@ -35,10 +35,6 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-        <activity
-            android:name=".AddMarkerActivity"
-            android:label="@string/title_activity_add_marker" >
         </activity>
     </application>
 
