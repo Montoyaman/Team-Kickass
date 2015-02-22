@@ -13,28 +13,31 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 public class MainGUI extends FragmentActivity {
+
+    private String FILENAME = "HashMap";
 
     /*Google map*/
     private GoogleMap mMap;
 
     /*Hashmap for storing markers*/
-    private HashMap<Marker, ActivityMarker> MarkerMap;
+    private HashMap<String, ActivityMarker> MarkerHash;
 
     /*Add frame classes*/
     private AddMarkerFrame addMarkerFrame;
     private EditMarkerFrame editMarkerFrame;
-
-    /*Array for hashing?*/
-    private ArrayList<ActivityMarker> markerList = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,8 +46,6 @@ public class MainGUI extends FragmentActivity {
         /*Setup the theme and map*/
         setTheme(R.style.SplashTheme);
         setContentView(R.layout.activity_main_gui);
-
-        MarkerMap = new HashMap<Marker, ActivityMarker>();
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -66,22 +67,22 @@ public class MainGUI extends FragmentActivity {
 
         //Check when the info window is clicked
         mMap.setOnInfoWindowClickListener(
-                new GoogleMap.OnInfoWindowClickListener() {
-                    @Override
-                    public void onInfoWindowClick(Marker marker) {
-                        if (addMarkerFrame.isVisible())
-                        {
-                            addMarkerFrame.clearFrameWindow();
-                        }
-
-                        if (editMarkerFrame.isVisible())
-                        {
-                            editMarkerFrame.clearFrameWindow();
-                        }
-
-                        editMarkerFrame.openFrameWindow(marker);
+            new GoogleMap.OnInfoWindowClickListener() {
+                @Override
+                public void onInfoWindowClick(Marker marker) {
+                    if (addMarkerFrame.isVisible())
+                    {
+                        addMarkerFrame.clearFrameWindow();
                     }
+
+                    if (editMarkerFrame.isVisible())
+                    {
+                        editMarkerFrame.clearFrameWindow();
+                    }
+
+                    editMarkerFrame.openFrameWindow(marker);
                 }
+            }
         );
 
         //Setup the map click listener
@@ -89,23 +90,23 @@ public class MainGUI extends FragmentActivity {
 
             @Override
             public void onMapClick(LatLng point) {
-                mMap.animateCamera(CameraUpdateFactory.newLatLng(point));
+            mMap.animateCamera(CameraUpdateFactory.newLatLng(point));
 
-                //Clear necessary frame layouts
-                if (addMarkerFrame.isVisible())
-                {
-                    addMarkerFrame.clearFrameWindow();
-                }
+            //Clear necessary frame layouts
+            if (addMarkerFrame.isVisible())
+            {
+                addMarkerFrame.clearFrameWindow();
+            }
 
-                else if (editMarkerFrame.isVisible())
-                {
-                    editMarkerFrame.clearFrameWindow();
-                }
+            else if (editMarkerFrame.isVisible())
+            {
+                editMarkerFrame.clearFrameWindow();
+            }
 
-                else
-                {
-                    addMarkerFrame.openFrameWindow(point);
-                }
+            else
+            {
+                addMarkerFrame.openFrameWindow(point);
+            }
             }
         });
     }
@@ -119,6 +120,9 @@ public class MainGUI extends FragmentActivity {
             case "Edit":
                 mark.setTitle(editMarkerFrame.getFrameTitle());
                 mark.setSnippet(editMarkerFrame.getFrameDescription());
+
+                //Remove the hash, and then re-add it
+
                 mark.showInfoWindow();
                 break;
             case "Remove":
@@ -134,20 +138,26 @@ public class MainGUI extends FragmentActivity {
     {
         //Add the marker to the array
         ActivityMarker newMark = new ActivityMarker(addMarkerFrame.getFrameTitle(),addMarkerFrame.getFrameDescription(),addMarkerFrame.getFramePoint().latitude,addMarkerFrame.getFramePoint().longitude);
-        markerList.add(newMark);
 
+        plotMarker(newMark);
 
-        //Create the marker and place on the map
-        //MarkerOptions options = new MarkerOptions();
-        //options.title(addMarkerFrame.getFrameTitle());
-        //options.snippet(addMarkerFrame.getFrameDescription());
-        // Setting position on the MarkerOptions
-        //options.position(addMarkerFrame.getFramePoint());
-        // Adding marker on the GoogleMap
-        //Marker marker = mMap.addMarker(options);
-        //marker.showInfoWindow();
-        //Clear text inputs
-        //addMarkerFrame.clearFrameWindow();
+        addMarkerFrame.clearFrameWindow();
+
+        //Add to the hashmap
+        hashMarker(newMark);
+
+    }
+
+    private void plotMarker(ActivityMarker marker)
+    {
+        if(marker != null)
+        {
+            MarkerOptions markerOption = new MarkerOptions().position(new LatLng(marker.getLatitude(), marker.getLongitude()));
+            markerOption.title(marker.getTitle());
+            markerOption.snippet(marker.getDescription());
+            Marker Mark = mMap.addMarker(markerOption);
+            Mark.showInfoWindow();
+        }
     }
 
     private void plotMarkers(ArrayList<ActivityMarker> markers)
@@ -156,49 +166,47 @@ public class MainGUI extends FragmentActivity {
         {
             for (ActivityMarker myMarker : markers)
             {
-                MarkerOptions markerOption = new MarkerOptions().position(new LatLng(myMarker.getLatitude(), myMarker.getLongitude()));
-
-
+                plotMarker(myMarker);
             }
         }
     }
 
     //http://www.rogcg.com/blog/2014/04/20/android-working-with-google-maps-v2-and-custom-markers
-    //Iterate through the Hash and create markers
-    private void hashMarkers(ArrayList<ActivityMarker> markers)
+    //Add a hash
+    private void hashMarker(ActivityMarker marker)
     {
-        if(markers.size() > 0)
+        if(marker != null)
         {
-            for (ActivityMarker myMarker : markers)
+            SecureRandom random = new SecureRandom();
+            byte bytes[] = new byte[8];
+            random.nextBytes(bytes);
+
+            String keyString = bytes.toString();
+
+            //Check generate unique ID
+            while (MarkerHash.get(keyString) != null)
             {
-
-                // Create user marker with custom icon and other options
-                //MarkerOptions markerOption = new MarkerOptions().position(new LatLng(myMarker.getLatitude(), myMarker.getLongitude()));
-//                MarkerOptions markerOption = new MarkerOptions().position(new LatLng(myMarker.getmLatitude(), myMarker.getmLongitude()));
-                //markerOption.icon(BitmapDescriptorFactory.fromResource(R.drawable.currentlocation_icon));
-
-                //Marker currentMarker = mMap.addMarker(markerOption);
-                //MarkerMap.put(currentMarker, myMarker);
-
-                //mMap.setInfoWindowAdapter(new MarkerInfoWindowAdapter());
+                random.nextBytes(bytes);
+                keyString = bytes.toString();
             }
+
+            //Enter the hash
+            marker.setKey(keyString);
+            MarkerHash.put(keyString, marker);
+
+            //Save the hashmap file
+            saveMap(MarkerHash);
         }
     }
 
-    private void saveMap() {
+    private void saveMap(HashMap hash) {
         try {
-            FileOutputStream fileOutputStream = new FileOutputStream("Test.txt");
-            ObjectOutputStream objectOutputStream= new ObjectOutputStream(fileOutputStream);
+            FileOutputStream fos = openFileOutput("HashMap", Context.MODE_PRIVATE);
+            ObjectOutputStream os = new ObjectOutputStream(fos);
+            os.writeObject(hash);
+            os.close();
+            fos.close();
 
-            objectOutputStream.writeObject(MarkerMap);
-            objectOutputStream.close();
-            fileOutputStream.close();
-
-//            FileOutputStream fos = openFileOutput("Test", Context.MODE_PRIVATE);
-//            ObjectOutputStream os = new ObjectOutputStream(fos);
-//            os.writeObject(MarkerMap);
-//            os.close();
-//            fos.close();
         } catch (IOException e) {
             Log.e("MyApp", "IO Exception: " + e);
 
@@ -207,24 +215,31 @@ public class MainGUI extends FragmentActivity {
 
     private HashMap loadMap()
     {
-        try {
-            Context context = getApplicationContext();
-            FileInputStream fis = context.openFileInput("Test");
-            ObjectInputStream is = new ObjectInputStream(fis);
-            HashMap simpleClass = (HashMap) is.readObject();
-            is.close();
-            fis.close();
-            return simpleClass;
-        }
-        catch(ClassNotFoundException e) {
-            Log.e("MyApp", "ClassNotFoundException: " + e);
-        }
-        catch(IOException e)
-        {
-            Log.e("MyApp", "IO Exception: " + e);
-        }
+        //File file = new File(FILENAME);
+        //if(file.exists())
+        //{
+            try {
+                Context context = getApplicationContext();
+                FileInputStream fis = context.openFileInput(FILENAME);
+                ObjectInputStream is = new ObjectInputStream(fis);
+                HashMap simpleClass = (HashMap) is.readObject();
+                is.close();
+                fis.close();
+                return simpleClass;
+            }
+            catch(ClassNotFoundException e) {
+                Log.e("MyApp", "ClassNotFoundException: " + e);
+            }
+            catch(FileNotFoundException e) {
+                Log.e("MyApp", "FileNotFoundException: " + e);
+            }
+            catch(IOException e)
+            {
+                Log.e("MyApp", "IO Exception: " + e);
+            }
+        //}
 
-        return null;
+        return new HashMap<String, ActivityMarker>();
     }
 
     @Override
@@ -262,12 +277,20 @@ public class MainGUI extends FragmentActivity {
     }
 
     /**
-     * This is where we can add markers or lines, add listeners or move the camera. In this case, we
-     * just add a marker near Africa.
+     * This is where we can add markers or lines, add listeners or move the camera.
      * <p/>
      * This should only be called once and when we are sure that {@link #mMap} is not null.
      */
     private void setUpMap() {
         mMap.setMyLocationEnabled(true);
+
+        /*Try to load the hashmap*/
+        MarkerHash = loadMap();
+
+        /*Build and plot the hashed markers*/
+        if (MarkerHash.size() != 0) {
+            ArrayList<ActivityMarker> markerList = new ArrayList<>(MarkerHash.values());
+            plotMarkers(markerList);
+        }
     }
 }

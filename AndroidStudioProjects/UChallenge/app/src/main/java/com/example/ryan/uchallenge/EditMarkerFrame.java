@@ -128,5 +128,7 @@ public class EditMarkerFrame {
 
     public void setFrameMarker(Marker mMarker){ this.marker = mMarker; };
 
+    public void getMarkerKey() { };
+
     public Marker getFrameMarker(){ return marker; };
 }

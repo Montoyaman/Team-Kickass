@@ -7,6 +7,7 @@ import android.widget.EditText;
 import android.widget.FrameLayout;
 
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 
 /**
  * Created by ryan on 2/15/15.
@@ -23,6 +24,10 @@ public class AddMarkerFrame {
 
     private LatLng point;
 
+    //Private members for default text
+    private static String defaultTitle = "Title";
+    private static String defaultDescription = "Description";
+
     //Constructor for the add_marker_frame, must pass calling context as well as the frame container
     public AddMarkerFrame(FrameLayout container, Context callContext)
     {
@@ -37,6 +42,16 @@ public class AddMarkerFrame {
             @Override
             public void onClick(View v) {
                 //We want to trigger a function in the calling routine that will handle the creation of a new marker
+                //Make sure the user hasn't added any null text
+                if (Description.getText().toString().equals(""))
+                {
+                    Description.setText(defaultDescription);
+                }
+                if (Title.getText().toString().equals(""))
+                {
+                    Title.setText(defaultTitle);
+                }
+
                 ((MainGUI)context).onAddMarker();
                 point = null;
             }
