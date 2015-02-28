@@ -4,7 +4,9 @@ import android.content.Context;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -34,6 +36,10 @@ public class MainGUI extends FragmentActivity {
 
     /*Hashmap for storing markers*/
     private HashMap<String, ActivityMarker> MarkerHash;
+
+    /*Hashmap for linking marker ID's to global hashkey*/
+    //First term is the marker id, second term is the global hash
+    private HashMap<String, String> MarkerIDHash;
 
     /*Add frame classes*/
     private AddMarkerFrame addMarkerFrame;
@@ -109,6 +115,30 @@ public class MainGUI extends FragmentActivity {
             }
             }
         });
+
+            /*Create a customized info window*/
+        mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
+
+            private String AdapterKey;
+
+            @Override
+            public View getInfoWindow(Marker marker) {
+                return null;
+            }
+
+            @Override
+            public View getInfoContents(Marker marker) {
+                final View Infowindow = getLayoutInflater().inflate(R.layout.windowlayout, null);
+
+                TextView Title = (TextView) Infowindow.findViewById(R.id.Title);
+                TextView Description = (TextView) Infowindow.findViewById(R.id.Description);
+
+                Title.setText(marker.getTitle());
+                Description.setText(marker.getSnippet());
+
+                return Infowindow;
+            }
+        });
     }
 
     /*This function is called by the EditMarkerFrame class when a button has been pressed*/
@@ -118,15 +148,19 @@ public class MainGUI extends FragmentActivity {
 
         switch (OPcode) {
             case "Edit":
+                //Update the parameters
                 mark.setTitle(editMarkerFrame.getFrameTitle());
                 mark.setSnippet(editMarkerFrame.getFrameDescription());
 
-                //Remove the hash, and then re-add it
+                //Update the hashmaps
+                updateHash(mark);
 
+                //Display the new info window
                 mark.showInfoWindow();
                 break;
             case "Remove":
-                mark.remove();
+                //Delete the record of the hash
+                RemoveHashedMarker(mark);
                 break;
         }
 
@@ -139,16 +173,16 @@ public class MainGUI extends FragmentActivity {
         //Add the marker to the array
         ActivityMarker newMark = new ActivityMarker(addMarkerFrame.getFrameTitle(),addMarkerFrame.getFrameDescription(),addMarkerFrame.getFramePoint().latitude,addMarkerFrame.getFramePoint().longitude);
 
-        plotMarker(newMark);
+        //Add to the hashmap
+        String key = hashMarker(newMark);
+
+        plotMarker(newMark, key);
 
         addMarkerFrame.clearFrameWindow();
-
-        //Add to the hashmap
-        hashMarker(newMark);
-
     }
 
-    private void plotMarker(ActivityMarker marker)
+    //Take in a marker,
+    private void plotMarker(ActivityMarker marker, String inKey)
     {
         if(marker != null)
         {
@@ -157,31 +191,58 @@ public class MainGUI extends FragmentActivity {
             markerOption.snippet(marker.getDescription());
             Marker Mark = mMap.addMarker(markerOption);
             Mark.showInfoWindow();
+
+            //Link markerID to current key
+            MarkerIDHash.put(Mark.getId(), inKey);
         }
     }
 
-    private void plotMarkers(ArrayList<ActivityMarker> markers)
+    private void plotMarkers(HashMap<String, ActivityMarker>HashMark)
     {
-        if(markers.size() > 0)
+        ArrayList<String> keyList = new ArrayList<>(HashMark.keySet());
+
+        if(keyList.size() > 0)
         {
-            for (ActivityMarker myMarker : markers)
+            for (String key : keyList)
             {
-                plotMarker(myMarker);
+                plotMarker(HashMark.get(key), key);
             }
+        }
+    }
+
+    private void updateHash(Marker mark)
+    {
+        if (mark != null) {
+            //Store the hash key
+            String key = MarkerIDHash.get(mark.getId());
+
+            //Remove the old hash
+            MarkerHash.remove(key);
+
+            //Build a new activitymarker
+            ActivityMarker newMark = new ActivityMarker(mark.getTitle(), mark.getSnippet(), mark.getPosition().latitude, mark.getPosition().longitude);
+
+            //Add to the hash
+            MarkerHash.put(key, newMark);
+
+            //Update the hash
+            saveMap(MarkerHash);
         }
     }
 
     //http://www.rogcg.com/blog/2014/04/20/android-working-with-google-maps-v2-and-custom-markers
     //Add a hash
-    private void hashMarker(ActivityMarker marker)
+    private String hashMarker(ActivityMarker marker)
     {
+        String keyString = "";
+
         if(marker != null)
         {
             SecureRandom random = new SecureRandom();
             byte bytes[] = new byte[8];
             random.nextBytes(bytes);
 
-            String keyString = bytes.toString();
+            keyString = bytes.toString();
 
             //Check generate unique ID
             while (MarkerHash.get(keyString) != null)
@@ -195,6 +256,31 @@ public class MainGUI extends FragmentActivity {
             MarkerHash.put(keyString, marker);
 
             //Save the hashmap file
+            saveMap(MarkerHash);
+        }
+
+        else
+        {
+            return null;
+        }
+
+        return keyString;
+    }
+
+    private void RemoveHashedMarker(Marker Mark)
+    {
+        if (Mark != null) {
+            //Acquire the global key
+            String key = MarkerIDHash.get(Mark.getId());
+
+            //Remove from the hash
+            MarkerHash.remove(key);
+            MarkerIDHash.remove(Mark.getId());
+
+            //Delete the marker
+            Mark.remove();
+
+            //Update the hashmap
             saveMap(MarkerHash);
         }
     }
@@ -215,29 +301,25 @@ public class MainGUI extends FragmentActivity {
 
     private HashMap loadMap()
     {
-        //File file = new File(FILENAME);
-        //if(file.exists())
-        //{
-            try {
-                Context context = getApplicationContext();
-                FileInputStream fis = context.openFileInput(FILENAME);
-                ObjectInputStream is = new ObjectInputStream(fis);
-                HashMap simpleClass = (HashMap) is.readObject();
-                is.close();
-                fis.close();
-                return simpleClass;
-            }
-            catch(ClassNotFoundException e) {
-                Log.e("MyApp", "ClassNotFoundException: " + e);
-            }
-            catch(FileNotFoundException e) {
-                Log.e("MyApp", "FileNotFoundException: " + e);
-            }
-            catch(IOException e)
-            {
-                Log.e("MyApp", "IO Exception: " + e);
-            }
-        //}
+        try {
+            Context context = getApplicationContext();
+            FileInputStream fis = context.openFileInput(FILENAME);
+            ObjectInputStream is = new ObjectInputStream(fis);
+            HashMap simpleClass = (HashMap) is.readObject();
+            is.close();
+            fis.close();
+            return simpleClass;
+        }
+        catch(ClassNotFoundException e) {
+            Log.e("MyApp", "ClassNotFoundException: " + e);
+        }
+        catch(FileNotFoundException e) {
+            Log.e("MyApp", "FileNotFoundException: " + e);
+        }
+        catch(IOException e)
+        {
+            Log.e("MyApp", "IO Exception: " + e);
+        }
 
         return new HashMap<String, ActivityMarker>();
     }
@@ -284,13 +366,14 @@ public class MainGUI extends FragmentActivity {
     private void setUpMap() {
         mMap.setMyLocationEnabled(true);
 
+        MarkerIDHash = new HashMap<>();
+
         /*Try to load the hashmap*/
         MarkerHash = loadMap();
 
-        /*Build and plot the hashed markers*/
+        /*Build and plot the hashed markers, link to Id*/
         if (MarkerHash.size() != 0) {
-            ArrayList<ActivityMarker> markerList = new ArrayList<>(MarkerHash.values());
-            plotMarkers(markerList);
+            plotMarkers(MarkerHash);
         }
     }
 }
